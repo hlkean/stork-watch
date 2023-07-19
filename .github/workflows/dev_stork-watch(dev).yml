@@ -4,11 +4,6 @@ on:
   push:
     branches:
       - dev
-    paths-ignore:
-      - "README.md"
-      - ".husky"
-      - "**/*.csv"
-      - .env*
   workflow_dispatch:
 
 jobs:
@@ -23,14 +18,6 @@ jobs:
         with:
           node-version: "18.x"
 
-      - name: create env file
-        env:
-          NEXT_PUBLIC_API_BASE_URL: ${{ vars.DEV_NEXT_PUBLIC_API_BASE_URL }}
-        run: |
-          touch .env
-          echo NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL >> .env
-          echo NODE_ENV=development >> .env
-
       - name: npm install, build, and test
         run: |
           npm install
@@ -40,7 +27,7 @@ jobs:
       - name: Zip all files for upload between jobs
         # IMPORTANT: .next is a hidden folder and will NOT be included in the zip unless we specify it
         # To fix: /home/site/wwwroot/node_modules/.bin/next: 1: ../next/dist/bin/next: not found
-        run: zip next.zip ./* .next .env -qr
+        run: zip next.zip ./* .next -qr
 
       - name: "Deploy to Azure Web App"
         id: deploy-to-webapp
