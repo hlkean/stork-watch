@@ -1,33 +1,25 @@
 ---
 import astroLogo from '../assets/astro.svg';
-import background from '../assets/background.svg';
 import logo from '../assets/logo.svg';
 ---
 
 <div id="container">
-	<img id="background" src={background.src} alt="" fetchpriority="high" />
 	<main>
 		<section id="hero">
 			
 			<h1>Stork Watch</h1>
 			<img class="logo" src={logo.src} width="180" height="180" alt="Stork Watch Homepage" />
-			<h2>Coming Soon</h2>
+			<div class="w-full flex justify-between mt-8">
+				<a href="./login" class="btn-primary">Login</a>
+				<a href="./register" class="btn-primary">Register</a>
+			</div>
 			</section>
 		</section>
 	</main>
+
 </div>
 
 <style>
-	#background {
-		position: fixed;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 100%;
-		z-index: -1;
-		filter: blur(100px);
-	}
-
 	#container {
 		height: 100%;
 	}
@@ -44,21 +36,6 @@ import logo from '../assets/logo.svg';
 		flex-direction: column;
 		justify-content: center;
 		padding: 16px;
-	}
-
-	h1 {
-		font-size: 56px;
-		margin: 0.25em;
-		color:#7DCBF0;
-		text-shadow: -4px -4px 0 #2A426E, 4px -4px 0 #2A426E, -4px 4px 0 #2A426E, 4px 4px 0 #2A426E;
-	}
-
-	h2 {
-		margin: 0 0 1em;
-		font-weight: normal;
-		color: #7DCBF0;
-		text-shadow: -3px -3px 0 #2A426E, 3px -3px 0 #2A426E, -3px 3px 0 #2A426E, 3px 3px 0 #2A426E;
-		font-size: 40px;
 	}
 
 	.logo {

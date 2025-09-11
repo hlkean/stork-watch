@@ -1,0 +1,87 @@
+---
+import Layout from '../layouts/Layout.astro';
+const registered = Astro.url.searchParams.get('registered');
+---
+<Layout>
+  <main class="container py-10">
+    <h1 class="mb-6 text-3xl font-bold">Create your account</h1>
+    <form method="post" action="/api/register" class="card space-y-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label for="firstName">First name</label>
+          <input class="mt-1 w-full p-2" id="firstName" name="firstName" required />
+        </div>
+        <div>
+          <label for="lastName">Last name</label>
+          <input class="mt-1 w-full p-2" id="lastName" name="lastName" required />
+        </div>
+      </div>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label for="email">Email</label>
+          <input class="mt-1 w-full p-2" id="email" name="email" type="email" required />
+        </div>
+        <div>
+          <label for="phone">Phone</label>
+          <input class="mt-1 w-full p-2" id="phone" name="phone" placeholder="(555) 555-1234" required />
+        </div>
+      </div>
+      <div>
+        <label for="password">Password</label>
+        <input class="mt-1 w-full p-2" id="password" name="password" type="password" minlength="8" required />
+      </div>
+
+      <fieldset class="space-y-2" id="parentFieldset">
+        <legend class="text-sm font-semibold">Are you signing up as a parent?</legend>
+        <div class="flex gap-6">
+          <label class="inline-flex items-center gap-2"><input type="radio" name="isParent" value="yes" required /> Yes</label>
+          <label class="inline-flex items-center gap-2"><input type="radio" name="isParent" value="no" required /> No</label>
+        </div>
+      </fieldset>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 parent-only hidden" id="parentFields">
+        <div>
+          <label for="dueDate">Due date</label>
+          <input class="mt-1 w-full p-2" id="dueDate" name="dueDate" type="date" />
+        </div>
+        <div>
+          <label for="childrenExpected">Number of babies</label>
+          <input class="mt-1 w-full p-2" id="childrenExpected" name="childrenExpected" type="number" min="1" max="8" />
+        </div>
+      </div>
+
+      <label class="inline-flex items-center gap-2">
+        <input type="checkbox" name="acceptTerms" required />
+        <span>I agree to the Terms and Privacy Policy</span>
+      </label>
+
+      <button class="btn-primary" type="submit">Sign up</button>
+      <p class="text-sm">Already have an account? <a href="/login">Sign in</a></p>
+    </form>
+  </main>
+</Layout>
+
+<script>
+  const radios = document.querySelectorAll('input[name="isParent"]');
+  const parentFields = document.getElementById('parentFields');
+  const due = document.getElementById('dueDate');
+  const kids = document.getElementById('childrenExpected');
+  function update() {
+    const val = document.querySelector('input[name="isParent"]:checked')?.value;
+    const show = val === 'yes';
+    parentFields?.classList.toggle('hidden', !show);
+    if (due && kids) {
+      if (show) {
+        due.setAttribute('required', 'true');
+        kids.setAttribute('required', 'true');
+      } else {
+        due.removeAttribute('required');
+        kids.removeAttribute('required');
+        due.value = '';
+        kids.value = '';
+      }
+    }
+  }
+  radios.forEach(r => r.addEventListener('change', update));
+  update();
+</script>

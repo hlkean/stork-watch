@@ -1,0 +1,32 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { prisma } from '../lib/db.js';
+
+const sessionId = Astro.cookies.get('stork_session')?.value;
+if (!sessionId) return Astro.redirect('/login');
+const session = await prisma.session.findUnique({ where: { id: sessionId } });
+if (!session) return Astro.redirect('/login');
+const user = await prisma.user.findUnique({ where: { id: session.userId } });
+if (!user) return Astro.redirect('/login');
+---
+<Layout>
+  <main class="container py-10 space-y-6">
+    <h1 class="text-3xl font-bold">Welcome, {user.firstName}!</h1>
+    <div class="card space-y-2">
+      <div><span class="opacity-70">Email:</span> {user.email}</div>
+      <div><span class="opacity-70">Phone:</span> {user.phone}</div>
+      <div>
+        <span class="opacity-70">Email status:</span>
+        {user.emailVerifiedAt ? <span class="text-emerald-300">Verified</span> : <span class="text-amber-300">Pending</span>}
+      </div>
+      <div>
+        <span class="opacity-70">Phone status:</span>
+        {user.phoneVerifiedAt ? <span class="text-emerald-300">Verified</span> : <span class="text-amber-300">Pending</span>}
+      </div>
+    </div>
+
+    <form method="post" action="/api/logout">
+      <button class="btn-primary" type="submit">Log out</button>
+    </form>
+  </main>
+</Layout>

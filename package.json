@@ -1,5 +1,5 @@
 {
-  "name": "",
+  "name": "stork-watch",
   "type": "module",
   "version": "0.0.1",
   "scripts": {
@@ -10,6 +10,18 @@
   },
   "dependencies": {
     "@fontsource/lilita-one": "^5.2.5",
-    "astro": "^5.7.10"
+    "@prisma/client": "^6.15.0",
+    "astro": "^5.7.10",
+    "libphonenumber-js": "^1.12.15",
+    "prisma": "^6.15.0",
+    "twilio": "^5.9.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@astrojs/tailwind": "^6.0.2",
+    "@types/node": "^24.3.1",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17"
   }
 }

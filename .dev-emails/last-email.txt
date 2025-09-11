@@ -1,0 +1,2 @@
+To: test@test.com
+Verify: http://localhost:4321/api/verify-email?token=9876eb76c8459001badabd719ce38dbac057acd7

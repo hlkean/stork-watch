@@ -1,0 +1,60 @@
+@import "@fontsource/lilita-one";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* App-specific base styles */
+:root {
+  --bg: #0b1020;
+  --fg: #f4f7ff;
+}
+
+html, body {
+  min-height: 100%;
+  /* background-color: var(--bg); */
+  color: var(--fg);
+  font-family: 'Lilita One', system-ui;
+}
+
+a { @apply text-blue-300 hover:text-blue-200 underline; }
+
+input, select, button {
+  @apply rounded-md border border-white/10 bg-white/5 text-white placeholder-white/50;
+}
+
+label { @apply text-sm font-semibold text-white/80; }
+
+.card { @apply rounded-xl border border-white/10 bg-white/5 backdrop-blur p-6 shadow; }
+
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-500 disabled:opacity-50;
+}
+
+.container { @apply mx-auto max-w-xl px-4; background-color: #2A426E; }
+
+/* Global background from Welcome component */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: no-repeat center/cover url('../assets/background.svg');
+  filter: blur(100px);
+}
+
+/* Heading styles inspired by Welcome component */
+h1 {
+  font-size: 56px;
+  margin: 0.25em 0;
+  color: #7DCBF0;
+  text-shadow: -4px -4px 0 #2A426E, 4px -4px 0 #2A426E, -4px 4px 0 #2A426E, 4px 4px 0 #2A426E;
+}
+
+h2 {
+  margin: 0 0 1em;
+  font-weight: normal;
+  color: #7DCBF0;
+  text-shadow: -3px -3px 0 #2A426E, 3px -3px 0 #2A426E, -3px 3px 0 #2A426E, 3px 3px 0 #2A426E;
+  font-size: 40px;
+}

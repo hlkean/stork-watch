@@ -1,0 +1,34 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout>
+  <main class="container py-10">
+    <h1 class="mb-6 text-3xl font-bold">Sign in</h1>
+    <form method="post" action="/api/login" class="card space-y-4">
+      <div>
+        <label for="email">Email</label>
+        <input class="mt-1 w-full p-2" id="email" name="email" type="email" required />
+      </div>
+      <div>
+        <label for="password">Password</label>
+        <input class="mt-1 w-full p-2" id="password" name="password" type="password" required />
+      </div>
+      <button class="btn-primary" type="submit">Sign in</button>
+      <p class="text-sm">No account? <a href="/register">Create one</a></p>
+    </form>
+
+    <section class="mt-8 card space-y-3">
+      <h2 class="text-xl font-semibold">Verify email or phone</h2>
+      <form method="post" action="/api/request-phone-otp" class="flex gap-2">
+        <input class="w-full p-2" name="email" type="email" placeholder="Your email" required />
+        <button class="btn-primary" type="submit">Send phone code</button>
+      </form>
+      <form method="post" action="/api/verify-phone" class="flex gap-2">
+        <input class="w-full p-2" name="email" type="email" placeholder="Your email" required />
+        <input class="w-full p-2" name="code" placeholder="Enter SMS code" required />
+        <button class="btn-primary" type="submit">Verify phone</button>
+      </form>
+      <p class="text-sm opacity-80">Dev: verification link and code are written to <code>.dev-emails/last-email.txt</code> and <code>.dev-sms/last-code.txt</code>.</p>
+    </section>
+  </main>
+</Layout>
