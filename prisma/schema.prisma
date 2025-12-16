@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PregnancyStatus {
+  PREGNANT
+  BIRTH_ANNOUNCED
+  ARCHIVED
+}
+
+enum MemberRole {
+  PARENT
+  COPARENT
+  SUBSCRIBER
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+}
+
+enum UpdateType {
+  NOTE
+  MILESTONE
+  BIRTH
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+model User {
+  id          String        @id @default(uuid())
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  name        String
+  email       String?       @unique
+  phone       String?       @unique
+  memberships Membership[]
+  invites     Invite[]
+  updates     Update[]      @relation("UpdateAuthor")
+  messages    Message[]     @relation("UserMessages")
+}
+
+model Pregnancy {
+  id             String        @id @default(uuid())
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  slug           String        @unique
+  nickname       String?
+  dueDate        DateTime?
+  sex            String?
+  status         PregnancyStatus @default(PREGNANT)
+  members        Membership[]
+  invites        Invite[]
+  updates        Update[]
+  messages       Message[]
+  groups         Group[]
+  birthSummary   Json?
+}
+
+model Membership {
+  id           String     @id @default(uuid())
+  createdAt    DateTime   @default(now())
+  userId       String
+  pregnancyId  String
+  role         MemberRole
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pregnancy    Pregnancy  @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  groupMembers GroupMember[]
+
+  @@unique([userId, pregnancyId])
+}
+
+model Invite {
+  id           String        @id @default(uuid())
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  pregnancyId  String
+  inviterId    String?
+  phone        String?
+  email        String?
+  code         String        @unique
+  status       InviteStatus  @default(PENDING)
+  defaultGroup Group?        @relation(fields: [defaultGroupId], references: [id])
+  defaultGroupId String?
+  pregnancy    Pregnancy     @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  inviter      User?         @relation(fields: [inviterId], references: [id], onDelete: SetNull)
+
+  @@index([pregnancyId])
+  @@index([phone])
+  @@index([email])
+}
+
+model Update {
+  id           String        @id @default(uuid())
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  pregnancyId  String
+  authorId     String?
+  title        String?
+  content      String
+  mediaUrl     String?
+  type         UpdateType    @default(NOTE)
+  pregnancy    Pregnancy     @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  author       User?         @relation("UpdateAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  messages     Message[]
+
+  @@index([pregnancyId])
+}
+
+model Message {
+  id           String           @id @default(uuid())
+  createdAt    DateTime         @default(now())
+  direction    MessageDirection
+  pregnancyId  String
+  updateId     String?
+  senderId     String?
+  body         String
+  mediaUrl     String?
+  twilioSid    String?          @unique
+  pregnancy    Pregnancy        @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  update       Update?          @relation(fields: [updateId], references: [id], onDelete: SetNull)
+  sender       User?            @relation("UserMessages", fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([pregnancyId])
+  @@index([twilioSid])
+}
+
+model Group {
+  id           String       @id @default(uuid())
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  pregnancyId  String
+  name         String
+  description  String?
+  pregnancy    Pregnancy    @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  members      GroupMember[]
+  invites      Invite[]
+
+  @@unique([pregnancyId, name])
+}
+
+model GroupMember {
+  id            String      @id @default(uuid())
+  createdAt     DateTime    @default(now())
+  membershipId  String
+  groupId       String
+  membership    Membership  @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  group         Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([membershipId, groupId])
+}
