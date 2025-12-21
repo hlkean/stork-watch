@@ -40,9 +40,10 @@ model User {
   id          String        @id @default(uuid())
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
-  name        String
+  firstName   String
+  lastName    String
   email       String?       @unique
-  phone       String?       @unique
+  phone       String        @unique
   memberships Membership[]
   invites     Invite[]
   updates     Update[]      @relation("UpdateAuthor")
@@ -56,7 +57,9 @@ model Pregnancy {
   slug           String        @unique
   nickname       String?
   dueDate        DateTime?
+  birthDate      DateTime?
   sex            String?
+  babyName       String?
   status         PregnancyStatus @default(PREGNANT)
   members        Membership[]
   invites        Invite[]

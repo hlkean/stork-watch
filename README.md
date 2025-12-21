@@ -32,3 +32,7 @@ And Stork Watch sends the news out!
 - Generate Prisma client: `npm run prisma:generate`
 - Run the app: `npm run dev` (defaults to `http://localhost:3000`)
 - Lint: `npm run lint`
+
+### Twilio setup (for phone verification)
+- Provision a Verify Service in Twilio and set `TWILIO_VERIFY_SERVICE_SID` in `.env` along with `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN`.
+- The registration flow will send an SMS code to confirm the phone before creating the account.
