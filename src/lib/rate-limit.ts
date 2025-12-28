@@ -6,6 +6,25 @@ const MAX_ATTEMPTS_PER_IP = 10;
 const TIME_WINDOW_MINUTES = 15;
 
 /**
+ * Validate if a string is a valid IPv4 or IPv6 address
+ */
+function isValidIpAddress(ip: string): boolean {
+  // IPv4 validation - check each octet is 0-255
+  const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+  const ipv4Match = ip.match(ipv4Regex);
+  if (ipv4Match) {
+    return ipv4Match.slice(1, 5).every((octet) => {
+      const num = parseInt(octet, 10);
+      return num >= 0 && num <= 255;
+    });
+  }
+  
+  // IPv6 validation - simplified check for hex digits and colons
+  const ipv6Regex = /^[a-f0-9:]+$/i;
+  return ipv6Regex.test(ip) && ip.includes(":");
+}
+
+/**
  * Get the client IP address from request headers
  * Note: X-Forwarded-For can be spoofed. This implementation provides
  * defense-in-depth by rate limiting both by phone number and IP.
@@ -17,13 +36,12 @@ export async function getClientIp(): Promise<string | null> {
   const forwarded = headersList.get("x-forwarded-for");
   if (forwarded) {
     const ip = forwarded.split(",")[0].trim();
-    // Basic validation to ensure it looks like an IP address
-    if (/^(?:\d{1,3}\.){3}\d{1,3}$|^[a-f0-9:]+$/i.test(ip)) {
+    if (isValidIpAddress(ip)) {
       return ip;
     }
   }
   const realIp = headersList.get("x-real-ip");
-  if (realIp && /^(?:\d{1,3}\.){3}\d{1,3}$|^[a-f0-9:]+$/i.test(realIp)) {
+  if (realIp && isValidIpAddress(realIp)) {
     return realIp;
   }
   return null;
