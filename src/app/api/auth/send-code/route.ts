@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json(
-        { error: "No account found for that phone" },
+        { error: "Unable to send verification code" },
         { status: 404 },
       );
     }

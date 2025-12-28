@@ -34,40 +34,75 @@ export async function POST(request: Request) {
       );
     }
 
-    // Random slug; in production consider collision retries.
-    const slug = `preg-${nanoid(8)}`;
+    // Random slug with collision retries for safety.
     const birthDate = parsed.babyBirthDate
       ? new Date(parsed.babyBirthDate)
       : null;
 
-    const result = await prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          firstName: parsed.firstName,
-          lastName: parsed.lastName,
-          phone,
-          email: null,
-        },
-      });
+    const maxSlugAttempts = 5;
+    let result: { user: unknown; pregnancy: unknown } | undefined;
 
-      const pregnancy = await tx.pregnancy.create({
-        data: {
-          slug,
-          birthDate,
-          sex: parsed.babySex ?? null,
-          babyName: parsed.babyName ?? null,
-          members: {
-            create: {
-              userId: user.id,
-              role: "PARENT",
+    for (let attempt = 0; attempt < maxSlugAttempts; attempt++) {
+      const slug = `preg-${nanoid(8)}`;
+
+      try {
+        result = await prisma.$transaction(async (tx) => {
+          const user = await tx.user.create({
+            data: {
+              firstName: parsed.firstName,
+              lastName: parsed.lastName,
+              phone,
+              email: null,
             },
-          },
-        },
-      });
+          });
 
-      return { user, pregnancy };
-    });
+          const pregnancy = await tx.pregnancy.create({
+            data: {
+              slug,
+              birthDate,
+              sex: parsed.babySex ?? null,
+              babyName: parsed.babyName ?? null,
+              members: {
+                create: {
+                  userId: user.id,
+                  role: "PARENT",
+                },
+              },
+            },
+          });
 
+          return { user, pregnancy };
+        });
+
+        break;
+      } catch (err) {
+        // Retry only on unique constraint errors related to the slug field.
+        if (
+          err &&
+          typeof err === "object" &&
+          "code" in err &&
+          (err as { code: string }).code === "P2002"
+        ) {
+          const meta = (err as { meta?: { target?: string | string[] } }).meta;
+          const target = meta && meta.target;
+          const targetStr = Array.isArray(target)
+            ? target.join(",")
+            : String(target ?? "");
+
+          if (targetStr.includes("slug")) {
+            if (attempt < maxSlugAttempts - 1) {
+              continue;
+            }
+          }
+        }
+
+        throw err;
+      }
+    }
+
+    if (!result) {
+      throw new Error("Failed to create pregnancy after slug retries");
+    }
     const response = NextResponse.json(result, { status: 201 });
     response.cookies.set("session_user", result.user.id, {
       httpOnly: true,
@@ -98,7 +133,7 @@ export async function POST(request: Request) {
       (error as { code: string }).code === "P2002"
     ) {
       return NextResponse.json(
-        { error: "User already exists with that phone" },
+        { error: "Unable to complete registration" },
         { status: 409 },
       );
     }

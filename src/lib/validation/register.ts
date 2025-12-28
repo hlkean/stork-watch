@@ -7,7 +7,10 @@ export const registerSchema = z.object({
   babyBirthDate: z.string().datetime().optional(),
   babySex: z.string().trim().optional(),
   babyName: z.string().trim().optional(),
-  verificationCode: z.string().trim().min(4, "Verification code is required"),
+  verificationCode: z
+    .string()
+    .trim()
+    .regex(/^\d{4,10}$/, "Verification code must be 4-10 digits"),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
