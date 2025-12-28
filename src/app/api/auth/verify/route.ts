@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { normalizeUSPhone } from "@/lib/phone";
 import { getTwilioClient } from "@/lib/twilio";
 import { loginVerifySchema } from "@/lib/validation/auth";
+import {
+  checkVerificationRateLimit,
+  resetVerificationRateLimit,
+} from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
@@ -18,6 +22,19 @@ export async function POST(request: Request) {
     }
 
     const phone = normalizeUSPhone(parsed.phone);
+
+    // Check rate limit before processing
+    const rateLimit = await checkVerificationRateLimit(phone);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: "Too many verification attempts",
+          retryAfterMinutes: rateLimit.retryAfterMinutes,
+        },
+        { status: 429 },
+      );
+    }
+
     const user = await prisma.user.findUnique({
       where: { phone },
       select: { id: true },
@@ -44,6 +61,9 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    // Reset rate limit on successful verification
+    await resetVerificationRateLimit(phone);
 
     const response = NextResponse.json({ success: true }, { status: 200 });
     response.cookies.set("session_user", user.id, {
