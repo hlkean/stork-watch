@@ -50,12 +50,34 @@ export async function checkVerificationRateLimit(
     });
   }
 
-  // Check if we're still in lockout period
+  // Check if we should reset the counter (outside time window and not in lockout)
   const lockoutEnd = new Date(
     attemptRecord.lastAttempt.getTime() +
       RATE_LIMIT_CONFIG.lockoutMinutes * 60 * 1000,
   );
 
+  // If we're past the lockout period, reset the counter
+  if (attemptRecord.attempts >= RATE_LIMIT_CONFIG.maxAttempts && now >= lockoutEnd) {
+    attemptRecord = await prisma.verificationAttempt.update({
+      where: { phone },
+      data: {
+        attempts: 0,
+        lastAttempt: now,
+      },
+    });
+  }
+  // If we're past the time window but not in lockout, reset the counter
+  else if (attemptRecord.lastAttempt < windowStart) {
+    attemptRecord = await prisma.verificationAttempt.update({
+      where: { phone },
+      data: {
+        attempts: 0,
+        lastAttempt: now,
+      },
+    });
+  }
+
+  // Check if we're still in lockout period
   if (
     attemptRecord.attempts >= RATE_LIMIT_CONFIG.maxAttempts &&
     now < lockoutEnd
@@ -69,18 +91,6 @@ export async function checkVerificationRateLimit(
     };
   }
 
-  // Check if we should reset the counter (outside time window)
-  if (attemptRecord.lastAttempt < windowStart) {
-    // Reset counter to 0 (will be incremented below)
-    attemptRecord = await prisma.verificationAttempt.update({
-      where: { phone },
-      data: {
-        attempts: 0,
-        lastAttempt: now,
-      },
-    });
-  }
-
   // Increment attempt counter
   const newAttempts = attemptRecord.attempts + 1;
 
@@ -92,8 +102,8 @@ export async function checkVerificationRateLimit(
     },
   });
 
-  // Check if we've exceeded max attempts
-  if (newAttempts >= RATE_LIMIT_CONFIG.maxAttempts) {
+  // Check if we've reached or exceeded max attempts
+  if (newAttempts > RATE_LIMIT_CONFIG.maxAttempts) {
     const retryAfterMinutes = RATE_LIMIT_CONFIG.lockoutMinutes;
     return {
       allowed: false,

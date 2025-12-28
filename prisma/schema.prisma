@@ -165,7 +165,7 @@ model GroupMember {
 model VerificationAttempt {
   id          String   @id @default(uuid())
   phone       String
-  attempts    Int      @default(1)
+  attempts    Int      @default(0)
   lastAttempt DateTime @default(now())
   createdAt   DateTime @default(now())
 

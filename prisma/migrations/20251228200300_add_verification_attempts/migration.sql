@@ -2,7 +2,7 @@
 CREATE TABLE "VerificationAttempt" (
     "id" TEXT NOT NULL,
     "phone" TEXT NOT NULL,
-    "attempts" INTEGER NOT NULL DEFAULT 1,
+    "attempts" INTEGER NOT NULL DEFAULT 0,
     "lastAttempt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
