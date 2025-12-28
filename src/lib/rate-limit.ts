@@ -9,9 +9,10 @@ interface RateLimitStore {
 }
 
 const store = new Map<string, RateLimitStore>();
+let lastCleanup = Date.now();
 
 /**
- * Cleanup expired entries (lazy cleanup during checkRateLimit)
+ * Cleanup expired entries periodically (every 5 minutes)
  */
 function cleanupExpiredEntries() {
   const now = Date.now();
@@ -21,6 +22,7 @@ function cleanupExpiredEntries() {
       store.delete(key);
     }
   }
+  lastCleanup = now;
 }
 
 export interface RateLimitOptions {
@@ -50,12 +52,13 @@ export function checkRateLimit(
   identifier: string,
   options: RateLimitOptions,
 ): RateLimitResult {
-  // Periodically cleanup expired entries (every ~100 checks)
-  if (Math.random() < 0.01) {
+  const now = Date.now();
+  
+  // Cleanup expired entries every 5 minutes
+  if (now - lastCleanup > 5 * 60 * 1000) {
     cleanupExpiredEntries();
   }
   
-  const now = Date.now();
   const windowMs = options.windowSeconds * 1000;
   
   const existing = store.get(identifier);
@@ -95,6 +98,13 @@ export function checkRateLimit(
 }
 
 /**
+ * Calculate seconds until reset for Retry-After header
+ */
+export function getRetryAfterSeconds(resetAt: number): number {
+  return Math.max(0, Math.ceil((resetAt - Date.now()) / 1000));
+}
+
+/**
  * Get client IP address from request
  * Handles various proxy headers
  */
@@ -124,14 +134,17 @@ export function getClientIp(request: Request): string {
 }
 
 /**
- * Simple string hash function for fallback IP identification
+ * FNV-1a hash function for fallback IP identification
+ * More robust than simple hash with better collision resistance
  */
 function hashString(str: string): string {
-  let hash = 0;
+  const FNV_PRIME = 0x01000193;
+  let hash = 0x811c9dc5; // FNV offset basis
+  
   for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, FNV_PRIME);
   }
-  return Math.abs(hash).toString(36);
+  
+  return (hash >>> 0).toString(36);
 }

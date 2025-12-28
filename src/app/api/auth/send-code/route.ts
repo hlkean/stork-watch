@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizeUSPhone } from "@/lib/phone";
 import { getTwilioClient } from "@/lib/twilio";
 import { loginSendCodeSchema } from "@/lib/validation/auth";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimit, getClientIp, getRetryAfterSeconds } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
         { 
           status: 429,
           headers: {
-            "Retry-After": Math.max(0, Math.ceil((ipRateLimit.resetAt - Date.now()) / 1000)).toString(),
+            "Retry-After": getRetryAfterSeconds(ipRateLimit.resetAt).toString(),
           },
         },
       );
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
         { 
           status: 429,
           headers: {
-            "Retry-After": Math.max(0, Math.ceil((phoneRateLimit.resetAt - Date.now()) / 1000)).toString(),
+            "Retry-After": getRetryAfterSeconds(phoneRateLimit.resetAt).toString(),
           },
         },
       );
