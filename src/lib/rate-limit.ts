@@ -55,8 +55,24 @@ async function getClientIP(): Promise<string> {
     return realIP;
   }
 
-  // Fallback to a generic identifier if IP cannot be determined
-  return "unknown";
+  // If IP cannot be determined, use a very restrictive approach
+  // by treating all unknown IPs as a single highly rate-limited entity
+  return "unknown-ip";
+}
+
+/**
+ * Cleanup expired rate limit records
+ * This should be called periodically (e.g., via a cron job) to prevent database bloat
+ */
+export async function cleanupExpiredRateLimits(): Promise<number> {
+  const result = await prisma.rateLimit.deleteMany({
+    where: {
+      expiresAt: {
+        lt: new Date(),
+      },
+    },
+  });
+  return result.count;
 }
 
 /**
@@ -78,15 +94,6 @@ export async function checkRateLimit(
   const key = identifiers.join(":");
 
   try {
-    // Clean up expired rate limit records
-    await prisma.rateLimit.deleteMany({
-      where: {
-        expiresAt: {
-          lt: now,
-        },
-      },
-    });
-
     // Try to find existing rate limit record
     const existing = await prisma.rateLimit.findUnique({
       where: { key },
@@ -159,11 +166,13 @@ export async function checkRateLimit(
     };
   } catch (error) {
     console.error("Rate limit check error:", error);
-    // In case of error, allow the request but log it
+    // Fail securely: deny the request if rate limiting fails
+    // This prevents bypassing rate limits when the database is unavailable
     return {
-      allowed: true,
-      attempts: 0,
+      allowed: false,
+      attempts: config.maxAttempts,
       limit: config.maxAttempts,
+      resetIn: config.windowSeconds,
     };
   }
 }
