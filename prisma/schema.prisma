@@ -161,3 +161,14 @@ model GroupMember {
 
   @@unique([membershipId, groupId])
 }
+
+model VerificationAttempt {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  identifier  String
+  ipAddress   String?
+  success     Boolean  @default(false)
+
+  @@index([identifier, createdAt])
+  @@index([ipAddress, createdAt])
+}
