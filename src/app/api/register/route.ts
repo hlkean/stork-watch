@@ -4,6 +4,11 @@ import { normalizeUSPhone } from "@/lib/phone";
 import { getTwilioClient } from "@/lib/twilio";
 import { registerSchema } from "@/lib/validation/register";
 import { nanoid } from "nanoid";
+import {
+  getClientIp,
+  isRateLimited,
+  recordVerificationAttempt,
+} from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
@@ -19,6 +24,17 @@ export async function POST(request: Request) {
     }
 
     const phone = normalizeUSPhone(parsed.phone);
+    const ipAddress = await getClientIp();
+
+    // Check rate limiting before attempting verification
+    const rateLimited = await isRateLimited(phone, ipAddress);
+    if (rateLimited) {
+      return NextResponse.json(
+        { error: "Too many verification attempts. Please try again later." },
+        { status: 429 },
+      );
+    }
+
     const client = getTwilioClient();
     const verification = await client.verify.v2
       .services(serviceSid)
@@ -28,10 +44,23 @@ export async function POST(request: Request) {
       });
 
     if (verification.status !== "approved") {
+      // Record the failed verification attempt
+      try {
+        await recordVerificationAttempt(phone, ipAddress, false);
+      } catch (error) {
+        console.error("Failed to record verification attempt", error);
+      }
       return NextResponse.json(
         { error: "Invalid verification code" },
         { status: 400 },
       );
+    }
+
+    // Record the successful verification attempt
+    try {
+      await recordVerificationAttempt(phone, ipAddress, true);
+    } catch (error) {
+      console.error("Failed to record verification attempt", error);
     }
 
     // Random slug; in production consider collision retries.

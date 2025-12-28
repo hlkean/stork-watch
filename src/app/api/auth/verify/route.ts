@@ -3,6 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { normalizeUSPhone } from "@/lib/phone";
 import { getTwilioClient } from "@/lib/twilio";
 import { loginVerifySchema } from "@/lib/validation/auth";
+import {
+  getClientIp,
+  isRateLimited,
+  recordVerificationAttempt,
+} from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
@@ -18,6 +23,17 @@ export async function POST(request: Request) {
     }
 
     const phone = normalizeUSPhone(parsed.phone);
+    const ipAddress = await getClientIp();
+
+    // Check rate limiting before attempting verification
+    const rateLimited = await isRateLimited(phone, ipAddress);
+    if (rateLimited) {
+      return NextResponse.json(
+        { error: "Too many verification attempts. Please try again later." },
+        { status: 429 },
+      );
+    }
+
     const user = await prisma.user.findUnique({
       where: { phone },
       select: { id: true },
@@ -39,10 +55,23 @@ export async function POST(request: Request) {
       });
 
     if (verification.status !== "approved") {
+      // Record the failed verification attempt
+      try {
+        await recordVerificationAttempt(phone, ipAddress, false);
+      } catch (error) {
+        console.error("Failed to record verification attempt", error);
+      }
       return NextResponse.json(
         { error: "Invalid verification code" },
         { status: 400 },
       );
+    }
+
+    // Record the successful verification attempt
+    try {
+      await recordVerificationAttempt(phone, ipAddress, true);
+    } catch (error) {
+      console.error("Failed to record verification attempt", error);
     }
 
     const response = NextResponse.json({ success: true }, { status: 200 });
