@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { z } from "zod";
+import { mapZodErrors } from "@/lib/validation-utils";
 
 type Step = "phone" | "verify";
 type FormState =
@@ -18,17 +19,6 @@ const phoneSchema = z.object({
 const verifyCodeSchema = z.object({
   verificationCode: z.string().trim().min(4, "Verification code must be at least 4 characters"),
 });
-
-// Helper function to convert Zod errors to field error map
-function mapZodErrors(error: z.ZodError): Record<string, string> {
-  const errors: Record<string, string> = {};
-  error.issues.forEach((issue) => {
-    if (issue.path[0]) {
-      errors[issue.path[0].toString()] = issue.message;
-    }
-  });
-  return errors;
-}
 
 export default function LoginPage() {
   const router = useRouter();
