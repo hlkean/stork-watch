@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Basic slug from name; in production consider collision retries.
+    // Random slug; in production consider collision retries.
     const slug = `preg-${nanoid(8)}`;
     const birthDate = parsed.babyBirthDate
       ? new Date(parsed.babyBirthDate)
