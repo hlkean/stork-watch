@@ -26,7 +26,7 @@ export async function POST(request: Request) {
         { 
           status: 429,
           headers: {
-            "Retry-After": Math.ceil((ipRateLimit.resetAt - Date.now()) / 1000).toString(),
+            "Retry-After": Math.max(0, Math.ceil((ipRateLimit.resetAt - Date.now()) / 1000)).toString(),
           },
         },
       );
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
         { 
           status: 429,
           headers: {
-            "Retry-After": Math.ceil((phoneRateLimit.resetAt - Date.now()) / 1000).toString(),
+            "Retry-After": Math.max(0, Math.ceil((phoneRateLimit.resetAt - Date.now()) / 1000)).toString(),
           },
         },
       );

@@ -10,8 +10,10 @@ interface RateLimitStore {
 
 const store = new Map<string, RateLimitStore>();
 
-// Cleanup expired entries every 5 minutes
-setInterval(() => {
+/**
+ * Cleanup expired entries (lazy cleanup during checkRateLimit)
+ */
+function cleanupExpiredEntries() {
   const now = Date.now();
   const entries = Array.from(store.entries());
   for (const [key, value] of entries) {
@@ -19,7 +21,7 @@ setInterval(() => {
       store.delete(key);
     }
   }
-}, 5 * 60 * 1000);
+}
 
 export interface RateLimitOptions {
   /**
@@ -48,6 +50,11 @@ export function checkRateLimit(
   identifier: string,
   options: RateLimitOptions,
 ): RateLimitResult {
+  // Periodically cleanup expired entries (every ~100 checks)
+  if (Math.random() < 0.01) {
+    cleanupExpiredEntries();
+  }
+  
   const now = Date.now();
   const windowMs = options.windowSeconds * 1000;
   
@@ -104,7 +111,27 @@ export function getClientIp(request: Request): string {
     return realIp.trim();
   }
   
-  // Fallback to a default identifier if no IP is available
-  // This can happen in development or when behind certain proxies
-  return "unknown";
+  // Use a hash of headers as fallback to avoid grouping all unknown IPs together
+  const cfConnectingIp = request.headers.get("cf-connecting-ip");
+  if (cfConnectingIp) {
+    return cfConnectingIp.trim();
+  }
+  
+  // Last resort: use a combination of headers to create a unique identifier
+  const userAgent = request.headers.get("user-agent") || "";
+  const accept = request.headers.get("accept") || "";
+  return `fallback-${hashString(userAgent + accept)}`;
+}
+
+/**
+ * Simple string hash function for fallback IP identification
+ */
+function hashString(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash).toString(36);
 }
