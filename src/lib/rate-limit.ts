@@ -103,7 +103,7 @@ export async function checkRateLimit(
 
     if (existing) {
       // Check if we're still within the same window
-      // Window has NOT expired if windowStart is after the calculated windowStart threshold
+      // Window has expired if existing windowStart is before the threshold
       const windowExpired = existing.windowStart < windowStart;
       
       if (!windowExpired) {

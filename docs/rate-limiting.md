@@ -37,6 +37,22 @@ const deletedCount = await cleanupExpiredRateLimits();
 console.log(`Cleaned up ${deletedCount} expired rate limit records`);
 ```
 
+## Security Considerations
+
+### IP Address Detection
+The rate limiter uses the `X-Forwarded-For` header to detect client IP addresses. By default, it takes the **first IP** in the header, which represents the original client.
+
+**Important:** If your application is behind multiple proxies or load balancers, you may need to adjust the IP detection logic:
+- If behind a single trusted proxy: Use the first IP (current implementation)
+- If behind multiple proxies: Consider taking the rightmost trusted IP
+- For maximum security: Implement a trusted proxy list
+
+To customize IP detection, modify the `getClientIP()` function in `src/lib/rate-limit.ts`.
+
+### Known Limitations
+- Requests without detectable IP addresses are grouped under a shared "unknown-ip" bucket, which is more restrictive but may affect legitimate users
+- IP-based rate limiting can be bypassed by attackers using multiple IP addresses (consider adding CAPTCHA for additional protection)
+
 ## Security Benefits
 - Prevents attackers from sending unlimited SMS messages
 - Protects against targeting specific phone numbers
