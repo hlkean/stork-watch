@@ -43,18 +43,24 @@ export async function POST(request: Request) {
         code: parsed.verificationCode,
       });
 
-    // Record the verification attempt
-    await recordVerificationAttempt(
-      phone,
-      ipAddress,
-      verification.status === "approved",
-    );
-
     if (verification.status !== "approved") {
+      // Record the failed verification attempt
+      try {
+        await recordVerificationAttempt(phone, ipAddress, false);
+      } catch (error) {
+        console.error("Failed to record verification attempt", error);
+      }
       return NextResponse.json(
         { error: "Invalid verification code" },
         { status: 400 },
       );
+    }
+
+    // Record the successful verification attempt
+    try {
+      await recordVerificationAttempt(phone, ipAddress, true);
+    } catch (error) {
+      console.error("Failed to record verification attempt", error);
     }
 
     // Random slug; in production consider collision retries.

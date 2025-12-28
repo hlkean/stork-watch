@@ -7,6 +7,9 @@ const TIME_WINDOW_MINUTES = 15;
 
 /**
  * Get the client IP address from request headers
+ * Note: X-Forwarded-For can be spoofed. This implementation provides
+ * defense-in-depth by rate limiting both by phone number and IP.
+ * The phone number is the primary rate limit identifier.
  */
 export async function getClientIp(): Promise<string | null> {
   const headersList = await headers();
