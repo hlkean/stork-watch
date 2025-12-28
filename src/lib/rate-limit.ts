@@ -46,7 +46,9 @@ async function getClientIP(): Promise<string> {
   // Check various headers that might contain the client IP
   const forwardedFor = headersList.get("x-forwarded-for");
   if (forwardedFor) {
-    // X-Forwarded-For can contain multiple IPs, take the first one
+    // X-Forwarded-For can contain multiple IPs, take the first one (client IP)
+    // Note: If your app is behind multiple proxies, you may need to adjust this
+    // to take the rightmost trusted IP instead. Verify your network architecture.
     return forwardedFor.split(",")[0].trim();
   }
 
@@ -101,17 +103,22 @@ export async function checkRateLimit(
 
     if (existing) {
       // Check if we're still within the same window
-      if (existing.windowStart >= windowStart) {
+      // Window has NOT expired if windowStart is after the calculated windowStart threshold
+      const windowExpired = existing.windowStart < windowStart;
+      
+      if (!windowExpired) {
         // Check if limit is exceeded
         if (existing.attempts >= config.maxAttempts) {
+          // Calculate reset time based on window start + window duration
+          const windowEnd = new Date(existing.windowStart.getTime() + config.windowSeconds * 1000);
           const resetIn = Math.ceil(
-            (existing.expiresAt.getTime() - now.getTime()) / 1000
+            (windowEnd.getTime() - now.getTime()) / 1000
           );
           return {
             allowed: false,
             attempts: existing.attempts,
             limit: config.maxAttempts,
-            resetIn,
+            resetIn: Math.max(0, resetIn),
           };
         }
 
@@ -186,10 +193,14 @@ export async function rateLimitSMS(
 ): Promise<RateLimitResult> {
   const ip = await getClientIP();
   
+  // Rate limit configuration for SMS
+  const SMS_MAX_ATTEMPTS = 3;
+  const SMS_WINDOW_SECONDS = 300; // 5 minutes
+  
   // Check rate limit with both IP and phone number
   // This prevents abuse from a single IP or targeting a single phone number
   return checkRateLimit([`sms`, ip, phone], {
-    maxAttempts: 3, // 3 attempts
-    windowSeconds: 300, // per 5 minutes
+    maxAttempts: SMS_MAX_ATTEMPTS,
+    windowSeconds: SMS_WINDOW_SECONDS,
   });
 }
