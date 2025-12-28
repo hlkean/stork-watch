@@ -24,6 +24,17 @@ const verifySchema = z.object({
   verificationCode: z.string().trim().min(4, "Verification code must be at least 4 characters"),
 });
 
+// Helper function to convert Zod errors to field error map
+function mapZodErrors(error: z.ZodError): Record<string, string> {
+  const errors: Record<string, string> = {};
+  error.issues.forEach((issue) => {
+    if (issue.path[0]) {
+      errors[issue.path[0].toString()] = issue.message;
+    }
+  });
+  return errors;
+}
+
 export default function RegisterPage() {
   const router = useRouter();
   const [form, setForm] = useState({
@@ -66,13 +77,7 @@ export default function RegisterPage() {
     });
 
     if (!validation.success) {
-      const errors: Record<string, string> = {};
-      validation.error.issues.forEach((error) => {
-        if (error.path[0]) {
-          errors[error.path[0].toString()] = error.message;
-        }
-      });
-      setFieldErrors(errors);
+      setFieldErrors(mapZodErrors(validation.error));
       return;
     }
 
@@ -112,13 +117,7 @@ export default function RegisterPage() {
     });
 
     if (!validation.success) {
-      const errors: Record<string, string> = {};
-      validation.error.issues.forEach((error) => {
-        if (error.path[0]) {
-          errors[error.path[0].toString()] = error.message;
-        }
-      });
-      setFieldErrors(errors);
+      setFieldErrors(mapZodErrors(validation.error));
       return;
     }
 
