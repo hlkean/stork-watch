@@ -8,7 +8,7 @@ import { z } from "zod";
 export function mapZodErrors(error: z.ZodError): Record<string, string> {
   const errors: Record<string, string> = {};
   error.issues.forEach((issue) => {
-    if (issue.path[0]) {
+    if (issue.path.length > 0) {
       errors[issue.path[0].toString()] = issue.message;
     }
   });
