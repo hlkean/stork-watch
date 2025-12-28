@@ -16,10 +16,14 @@ export async function getClientIp(): Promise<string | null> {
   // Check common headers for IP address
   const forwarded = headersList.get("x-forwarded-for");
   if (forwarded) {
-    return forwarded.split(",")[0].trim();
+    const ip = forwarded.split(",")[0].trim();
+    // Basic validation to ensure it looks like an IP address
+    if (/^(?:\d{1,3}\.){3}\d{1,3}$|^[a-f0-9:]+$/i.test(ip)) {
+      return ip;
+    }
   }
   const realIp = headersList.get("x-real-ip");
-  if (realIp) {
+  if (realIp && /^(?:\d{1,3}\.){3}\d{1,3}$|^[a-f0-9:]+$/i.test(realIp)) {
     return realIp;
   }
   return null;
@@ -37,34 +41,34 @@ export async function isRateLimited(
 ): Promise<boolean> {
   const timeWindow = new Date(Date.now() - TIME_WINDOW_MINUTES * 60 * 1000);
 
-  // Check attempts by phone number
-  const phoneAttempts = await prisma.verificationAttempt.count({
-    where: {
-      identifier,
-      createdAt: {
-        gte: timeWindow,
+  // Check attempts by phone number and IP address in a single query
+  const [phoneAttempts, ipAttempts] = await Promise.all([
+    prisma.verificationAttempt.count({
+      where: {
+        identifier,
+        createdAt: {
+          gte: timeWindow,
+        },
       },
-    },
-  });
+    }),
+    ipAddress
+      ? prisma.verificationAttempt.count({
+          where: {
+            ipAddress,
+            createdAt: {
+              gte: timeWindow,
+            },
+          },
+        })
+      : Promise.resolve(0),
+  ]);
 
   if (phoneAttempts >= MAX_ATTEMPTS_PER_PHONE) {
     return true;
   }
 
-  // Check attempts by IP address if available
-  if (ipAddress) {
-    const ipAttempts = await prisma.verificationAttempt.count({
-      where: {
-        ipAddress,
-        createdAt: {
-          gte: timeWindow,
-        },
-      },
-    });
-
-    if (ipAttempts >= MAX_ATTEMPTS_PER_IP) {
-      return true;
-    }
+  if (ipAttempts >= MAX_ATTEMPTS_PER_IP) {
+    return true;
   }
 
   return false;
