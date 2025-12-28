@@ -3,11 +3,59 @@ import { prisma } from "@/lib/prisma";
 import { normalizeUSPhone } from "@/lib/phone";
 import { getTwilioClient } from "@/lib/twilio";
 import { loginSendCodeSchema } from "@/lib/validation/auth";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
     const json = await request.json();
     const parsed = loginSendCodeSchema.parse(json);
+    
+    // Rate limit by IP address (5 requests per 15 minutes)
+    const clientIp = getClientIp(request);
+    const ipRateLimit = checkRateLimit(`send-code-ip:${clientIp}`, {
+      maxRequests: 5,
+      windowSeconds: 15 * 60,
+    });
+    
+    if (!ipRateLimit.success) {
+      const resetDate = new Date(ipRateLimit.resetAt);
+      return NextResponse.json(
+        { 
+          error: "Too many requests. Please try again later.",
+          resetAt: resetDate.toISOString(),
+        },
+        { 
+          status: 429,
+          headers: {
+            "Retry-After": Math.ceil((ipRateLimit.resetAt - Date.now()) / 1000).toString(),
+          },
+        },
+      );
+    }
+    
+    // Rate limit by phone number (3 requests per hour)
+    const phone = normalizeUSPhone(parsed.phone);
+    const phoneRateLimit = checkRateLimit(`send-code-phone:${phone}`, {
+      maxRequests: 3,
+      windowSeconds: 60 * 60,
+    });
+    
+    if (!phoneRateLimit.success) {
+      const resetDate = new Date(phoneRateLimit.resetAt);
+      return NextResponse.json(
+        { 
+          error: "Too many verification attempts for this phone number. Please try again later.",
+          resetAt: resetDate.toISOString(),
+        },
+        { 
+          status: 429,
+          headers: {
+            "Retry-After": Math.ceil((phoneRateLimit.resetAt - Date.now()) / 1000).toString(),
+          },
+        },
+      );
+    }
+    
     const serviceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
 
     if (!serviceSid) {
@@ -17,7 +65,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const phone = normalizeUSPhone(parsed.phone);
     const user = await prisma.user.findUnique({
       where: { phone },
       select: { id: true },
