@@ -14,12 +14,18 @@ export default function Home() {
             everyone in the loop without managing endless group chats.
           </p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <button className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-600 px-5 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-500">
-              Launch dashboard
-            </button>
-            <button className="inline-flex h-11 items-center justify-center rounded-full border border-zinc-200 px-5 text-sm font-semibold text-zinc-900 transition hover:bg-zinc-50">
-              View pregnancy page demo
-            </button>
+            <a
+              href="/register"
+              className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-600 px-5 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-500"
+            >
+              Get started
+            </a>
+            <a
+              href="/login"
+              className="inline-flex h-11 items-center justify-center rounded-full border border-zinc-200 px-5 text-sm font-semibold text-zinc-900 transition hover:bg-zinc-50"
+            >
+              Log in
+            </a>
           </div>
         </header>
 
