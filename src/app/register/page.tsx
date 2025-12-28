@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
-import { mapZodErrors } from "@/lib/validation-utils";
+import { mapZodErrors, phoneValidation } from "@/lib/validation-utils";
 
 type RegisterState =
   | { status: "idle" }
@@ -15,7 +15,7 @@ type RegisterState =
 const detailsSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required"),
   lastName: z.string().trim().min(1, "Last name is required"),
-  phone: z.string().trim().min(6, "Phone number must be at least 6 characters"),
+  phone: phoneValidation,
   babyBirthDate: z.string().optional(),
   babySex: z.string().optional(),
   babyName: z.string().optional(),

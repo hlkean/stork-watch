@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { z } from "zod";
-import { mapZodErrors } from "@/lib/validation-utils";
+import { mapZodErrors, phoneValidation } from "@/lib/validation-utils";
 
 type Step = "phone" | "verify";
 type FormState =
@@ -13,7 +13,7 @@ type FormState =
 
 // Validation schemas for each step
 const phoneSchema = z.object({
-  phone: z.string().trim().min(6, "Phone number must be at least 6 characters"),
+  phone: phoneValidation,
 });
 
 const verifyCodeSchema = z.object({
