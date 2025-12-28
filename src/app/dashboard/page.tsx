@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { logout } from "@/app/actions/auth";
 
 export default async function DashboardPage() {
   const sessionUser = (await cookies()).get("session_user")?.value;
@@ -40,7 +41,7 @@ export default async function DashboardPage() {
               Here&apos;s your pregnancy info and updates at a glance.
             </p>
           </div>
-          <form method="post" action="/api/auth/logout">
+          <form action={logout}>
             <button
               type="submit"
               className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50"
