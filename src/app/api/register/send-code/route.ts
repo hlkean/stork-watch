@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getTwilioClient } from "@/lib/twilio";
 import { normalizeUSPhone } from "@/lib/phone";
 import { sendCodeSchema } from "@/lib/validation/register";
+import { rateLimitSMS } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
@@ -17,6 +18,19 @@ export async function POST(request: Request) {
     }
 
     const to = normalizeUSPhone(parsed.phone);
+
+    // Check rate limit
+    const rateLimit = await rateLimitSMS(to);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: "Too many requests. Please try again later.",
+          resetIn: rateLimit.resetIn,
+        },
+        { status: 429 },
+      );
+    }
+
     const client = getTwilioClient();
     await client.verify.v2.services(serviceSid).verifications.create({
       to,

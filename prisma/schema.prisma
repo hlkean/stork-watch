@@ -161,3 +161,14 @@ model GroupMember {
 
   @@unique([membershipId, groupId])
 }
+
+model RateLimit {
+  id         String   @id @default(uuid())
+  key        String
+  attempts   Int      @default(1)
+  windowStart DateTime @default(now())
+  expiresAt  DateTime
+
+  @@unique([key])
+  @@index([expiresAt])
+}
