@@ -4,6 +4,7 @@ import { normalizeUSPhone } from "@/lib/phone";
 import { getTwilioClient } from "@/lib/twilio";
 import { registerSchema } from "@/lib/validation/register";
 import { nanoid } from "nanoid";
+import { SESSION_COOKIE_NAME, getSessionCookieOptions } from "@/lib/session";
 
 export async function POST(request: Request) {
   try {
@@ -69,13 +70,12 @@ export async function POST(request: Request) {
     });
 
     const response = NextResponse.json(result, { status: 201 });
-    response.cookies.set("session_user", result.user.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30,
-      sameSite: "lax",
-    });
+    const isProduction = process.env.NODE_ENV === "production";
+    response.cookies.set(
+      SESSION_COOKIE_NAME,
+      result.user.id,
+      getSessionCookieOptions(isProduction),
+    );
 
     return response;
   } catch (error) {
