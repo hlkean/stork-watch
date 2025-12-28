@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizeUSPhone } from "@/lib/phone";
 import { getTwilioClient } from "@/lib/twilio";
 import { loginSendCodeSchema } from "@/lib/validation/auth";
+import { rateLimitSMS } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
@@ -18,6 +19,19 @@ export async function POST(request: Request) {
     }
 
     const phone = normalizeUSPhone(parsed.phone);
+    
+    // Check rate limit
+    const rateLimit = await rateLimitSMS(phone);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: "Too many requests. Please try again later.",
+          resetIn: rateLimit.resetIn,
+        },
+        { status: 429 },
+      );
+    }
+
     const user = await prisma.user.findUnique({
       where: { phone },
       select: { id: true },
