@@ -109,6 +109,12 @@ export function getRetryAfterSeconds(resetAt: number): number {
  * Handles various proxy headers
  */
 export function getClientIp(request: Request): string {
+  // Check Cloudflare header first (most reliable when behind Cloudflare)
+  const cfConnectingIp = request.headers.get("cf-connecting-ip");
+  if (cfConnectingIp) {
+    return cfConnectingIp.trim();
+  }
+  
   // Check common proxy headers
   const forwardedFor = request.headers.get("x-forwarded-for");
   if (forwardedFor) {
@@ -119,12 +125,6 @@ export function getClientIp(request: Request): string {
   const realIp = request.headers.get("x-real-ip");
   if (realIp) {
     return realIp.trim();
-  }
-  
-  // Use a hash of headers as fallback to avoid grouping all unknown IPs together
-  const cfConnectingIp = request.headers.get("cf-connecting-ip");
-  if (cfConnectingIp) {
-    return cfConnectingIp.trim();
   }
   
   // Last resort: use a combination of headers to create a unique identifier
