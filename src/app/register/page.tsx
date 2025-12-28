@@ -74,7 +74,7 @@ export default function RegisterPage() {
           lastName: form.lastName.trim(),
           phone: form.phone.trim(),
           babyBirthDate: form.babyBirthDate
-            ? new Date(form.babyBirthDate).toISOString()
+            ? new Date(`${form.babyBirthDate}T00:00:00Z`).toISOString()
             : undefined,
           babySex: form.babySex.trim() || undefined,
           babyName: form.babyName.trim() || undefined,
