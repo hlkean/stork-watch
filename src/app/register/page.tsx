@@ -2,12 +2,28 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { z } from "zod";
+import { mapZodErrors, phoneValidation } from "@/lib/validation-utils";
 
 type RegisterState =
   | { status: "idle" }
   | { status: "submitting" }
   | { status: "success" }
   | { status: "error"; message: string };
+
+// Validation schemas for each step
+const detailsSchema = z.object({
+  firstName: z.string().trim().min(1, "First name is required"),
+  lastName: z.string().trim().min(1, "Last name is required"),
+  phone: phoneValidation,
+  babyBirthDate: z.string().optional(),
+  babySex: z.string().optional(),
+  babyName: z.string().optional(),
+});
+
+const verifySchema = z.object({
+  verificationCode: z.string().trim().min(4, "Verification code must be at least 4 characters"),
+});
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -25,16 +41,37 @@ export default function RegisterPage() {
   const [codeStatus, setCodeStatus] = useState<
     { status: "idle" } | { status: "sending" } | { status: "sent" } | { status: "error"; message: string }
   >({ status: "idle" });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const updateField = (field: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+    // Clear field error when user starts typing
+    if (fieldErrors[field]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
   };
 
   const handleSendCode = async () => {
-    if (!form.phone.trim()) {
-      setCodeStatus({ status: "error", message: "Enter a phone number first." });
+    // Validate details step
+    const validation = detailsSchema.safeParse({
+      firstName: form.firstName,
+      lastName: form.lastName,
+      phone: form.phone,
+      babyBirthDate: form.babyBirthDate,
+      babySex: form.babySex,
+      babyName: form.babyName,
+    });
+
+    if (!validation.success) {
+      setFieldErrors(mapZodErrors(validation.error));
       return;
     }
+
+    setFieldErrors({});
     setCodeStatus({ status: "sending" });
     setState({ status: "idle" });
     try {
@@ -58,11 +95,23 @@ export default function RegisterPage() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    
     if (step === "details") {
       await handleSendCode();
       return;
     }
 
+    // Validate verification code
+    const validation = verifySchema.safeParse({
+      verificationCode: form.verificationCode,
+    });
+
+    if (!validation.success) {
+      setFieldErrors(mapZodErrors(validation.error));
+      return;
+    }
+
+    setFieldErrors({});
     setState({ status: "submitting" });
 
     try {
@@ -135,10 +184,17 @@ export default function RegisterPage() {
                 <input
                   required
                   type="text"
-                  className="h-11 rounded-lg border border-zinc-200 px-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                  className={`h-11 rounded-lg border px-3 text-sm outline-none transition focus:ring-2 ${
+                    fieldErrors.firstName
+                      ? "border-red-300 focus:border-red-500 focus:ring-red-200"
+                      : "border-zinc-200 focus:border-emerald-500 focus:ring-emerald-200"
+                  }`}
                   value={form.firstName}
                   onChange={(e) => updateField("firstName", e.target.value)}
                 />
+                {fieldErrors.firstName && (
+                  <span className="text-xs text-red-600">{fieldErrors.firstName}</span>
+                )}
               </label>
 
               <label className="flex flex-col gap-2">
@@ -148,10 +204,17 @@ export default function RegisterPage() {
                 <input
                   required
                   type="text"
-                  className="h-11 rounded-lg border border-zinc-200 px-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                  className={`h-11 rounded-lg border px-3 text-sm outline-none transition focus:ring-2 ${
+                    fieldErrors.lastName
+                      ? "border-red-300 focus:border-red-500 focus:ring-red-200"
+                      : "border-zinc-200 focus:border-emerald-500 focus:ring-emerald-200"
+                  }`}
                   value={form.lastName}
                   onChange={(e) => updateField("lastName", e.target.value)}
                 />
+                {fieldErrors.lastName && (
+                  <span className="text-xs text-red-600">{fieldErrors.lastName}</span>
+                )}
               </label>
 
               <label className="flex flex-col gap-2">
@@ -159,11 +222,18 @@ export default function RegisterPage() {
                 <input
                   required
                   type="tel"
-                  className="h-11 rounded-lg border border-zinc-200 px-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                  className={`h-11 rounded-lg border px-3 text-sm outline-none transition focus:ring-2 ${
+                    fieldErrors.phone
+                      ? "border-red-300 focus:border-red-500 focus:ring-red-200"
+                      : "border-zinc-200 focus:border-emerald-500 focus:ring-emerald-200"
+                  }`}
                   placeholder="+1 (555) 555-5555"
                   value={form.phone}
                   onChange={(e) => updateField("phone", e.target.value)}
                 />
+                {fieldErrors.phone && (
+                  <span className="text-xs text-red-600">{fieldErrors.phone}</span>
+                )}
               </label>
 
               <label className="flex flex-col gap-2">
@@ -219,13 +289,20 @@ export default function RegisterPage() {
                 <input
                   required
                   type="text"
-                  className="h-11 rounded-lg border border-zinc-200 px-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                  className={`h-11 rounded-lg border px-3 text-sm outline-none transition focus:ring-2 ${
+                    fieldErrors.verificationCode
+                      ? "border-red-300 focus:border-red-500 focus:ring-red-200"
+                      : "border-zinc-200 focus:border-emerald-500 focus:ring-emerald-200"
+                  }`}
                   placeholder="Enter the code we texted you"
                   value={form.verificationCode}
                   onChange={(e) =>
                     updateField("verificationCode", e.target.value)
                   }
                 />
+                {fieldErrors.verificationCode && (
+                  <span className="text-xs text-red-600">{fieldErrors.verificationCode}</span>
+                )}
               </label>
               <button
                 type="button"
@@ -249,7 +326,10 @@ export default function RegisterPage() {
               {step === "verify" ? (
                 <button
                   type="button"
-                  onClick={() => setStep("details")}
+                  onClick={() => {
+                    setStep("details");
+                    setFieldErrors({});
+                  }}
                   className="inline-flex h-11 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
                 >
                   Back
