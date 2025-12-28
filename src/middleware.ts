@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import {
   SESSION_COOKIE_NAME,
-  SESSION_MAX_AGE,
-  SESSION_REFRESH_THRESHOLD,
   getSessionCookieOptions,
 } from "@/lib/session";
 
@@ -28,34 +26,17 @@ export function middleware(request: NextRequest) {
 
   const response = NextResponse.next();
 
-  // Implement sliding window: refresh the session cookie if it's getting close to expiration
-  // This provides a better user experience by keeping active users logged in
-  const cookieAge = getCookieAge();
-  const shouldRefresh = cookieAge > SESSION_REFRESH_THRESHOLD;
-
-  if (shouldRefresh) {
-    const isProduction = process.env.NODE_ENV === "production";
-    response.cookies.set(
-      SESSION_COOKIE_NAME,
-      sessionCookie.value,
-      getSessionCookieOptions(isProduction),
-    );
-  }
+  // Implement sliding window session refresh
+  // Refresh the session cookie on every request to protected paths to keep active users logged in
+  // This ensures sessions expire only after 30 days of inactivity, not 30 days from login
+  const isProduction = process.env.NODE_ENV === "production";
+  response.cookies.set(
+    SESSION_COOKIE_NAME,
+    sessionCookie.value,
+    getSessionCookieOptions(isProduction),
+  );
 
   return response;
-}
-
-/**
- * Estimate the age of a cookie based on the max-age attribute
- * Since we can't directly access when the cookie was set, we use a heuristic:
- * if the cookie exists and is close to expiring, we refresh it
- */
-function getCookieAge(): number {
-  // In a real implementation, we might store a timestamp in the cookie value
-  // For now, we'll refresh on every request to protected paths for simplicity
-  // This is still better than the previous implementation where sessions expired
-  // exactly after 30 days regardless of activity
-  return SESSION_MAX_AGE; // Always trigger refresh
 }
 
 export const config = {
