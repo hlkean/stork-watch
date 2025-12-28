@@ -41,7 +41,7 @@ export default async function DashboardPage() {
               Here&apos;s your pregnancy info and updates at a glance.
             </p>
           </div>
-          <form action={logout}>
+          <form method="post" action={logout}>
             <button
               type="submit"
               className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50"
