@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizeUSPhone } from "@/lib/phone";
 import { getTwilioClient } from "@/lib/twilio";
 import { loginVerifySchema } from "@/lib/validation/auth";
+import { SESSION_COOKIE_NAME, getSessionCookieOptions } from "@/lib/session";
 
 export async function POST(request: Request) {
   try {
@@ -46,13 +47,12 @@ export async function POST(request: Request) {
     }
 
     const response = NextResponse.json({ success: true }, { status: 200 });
-    response.cookies.set("session_user", user.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30,
-      sameSite: "lax",
-    });
+    const isProduction = process.env.NODE_ENV === "production";
+    response.cookies.set(
+      SESSION_COOKIE_NAME,
+      user.id,
+      getSessionCookieOptions(isProduction),
+    );
 
     return response;
   } catch (error) {
