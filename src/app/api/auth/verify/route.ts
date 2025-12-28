@@ -25,8 +25,8 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json(
-        { error: "No account found for that phone" },
-        { status: 404 },
+        { error: "Invalid credentials" },
+        { status: 400 },
       );
     }
 
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
 
     if (verification.status !== "approved") {
       return NextResponse.json(
-        { error: "Invalid verification code" },
+        { error: "Invalid credentials" },
         { status: 400 },
       );
     }
