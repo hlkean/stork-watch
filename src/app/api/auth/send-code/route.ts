@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizeUSPhone } from "@/lib/phone";
 import { getTwilioClient } from "@/lib/twilio";
 import { loginSendCodeSchema } from "@/lib/validation/auth";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
@@ -28,6 +29,19 @@ export async function POST(request: Request) {
         { error: "Unable to send verification code" },
         { status: 404 },
       );
+    }
+
+    const rate = checkRateLimit(
+      `login-send:${phone}`,
+      5, // sends
+      15 * 60 * 1000, // 15 minutes
+    );
+    if (!rate.allowed) {
+      const limited = rateLimitResponse(rate);
+      return NextResponse.json(limited.body, {
+        status: limited.status,
+        headers: limited.headers,
+      });
     }
 
     const client = getTwilioClient();

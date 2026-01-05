@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizeUSPhone } from "@/lib/phone";
 import { getTwilioClient } from "@/lib/twilio";
 import { registerSchema } from "@/lib/validation/register";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { nanoid } from "nanoid";
 
 export async function POST(request: Request) {
@@ -19,6 +20,19 @@ export async function POST(request: Request) {
     }
 
     const phone = normalizeUSPhone(parsed.phone);
+    const rate = checkRateLimit(
+      `register-verify:${phone}`,
+      10, // attempts
+      15 * 60 * 1000, // 15 minutes
+    );
+    if (!rate.allowed) {
+      const limited = rateLimitResponse(rate);
+      return NextResponse.json(limited.body, {
+        status: limited.status,
+        headers: limited.headers,
+      });
+    }
+
     const client = getTwilioClient();
     const verification = await client.verify.v2
       .services(serviceSid)
