@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizeUSPhone } from "@/lib/phone";
 import { getTwilioClient } from "@/lib/twilio";
 import { loginSendCodeSchema } from "@/lib/validation/auth";
-import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { RATE_LIMITS, checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
@@ -33,8 +33,8 @@ export async function POST(request: Request) {
 
     const rate = checkRateLimit(
       `login-send:${phone}`,
-      5, // sends
-      15 * 60 * 1000, // 15 minutes
+      RATE_LIMITS.loginSend.limit,
+      RATE_LIMITS.loginSend.windowMs,
     );
     if (!rate.allowed) {
       const limited = rateLimitResponse(rate);

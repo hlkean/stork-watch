@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getTwilioClient } from "@/lib/twilio";
 import { normalizeUSPhone } from "@/lib/phone";
 import { sendCodeSchema } from "@/lib/validation/register";
-import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { RATE_LIMITS, checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
@@ -20,8 +20,8 @@ export async function POST(request: Request) {
     const to = normalizeUSPhone(parsed.phone);
     const rate = checkRateLimit(
       `register-send:${to}`,
-      5, // sends
-      15 * 60 * 1000, // 15 minutes
+      RATE_LIMITS.registerSend.limit,
+      RATE_LIMITS.registerSend.windowMs,
     );
     if (!rate.allowed) {
       const limited = rateLimitResponse(rate);
