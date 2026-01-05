@@ -31,6 +31,19 @@ export async function POST(request: Request) {
       );
     }
 
+    const rate = checkRateLimit(
+      `login-verify-success:${phone}`,
+      RATE_LIMITS.loginVerifySuccess.limit,
+      RATE_LIMITS.loginVerifySuccess.windowMs,
+    );
+    if (!rate.allowed) {
+      const limited = rateLimitResponse(rate);
+      return NextResponse.json(limited.body, {
+        status: limited.status,
+        headers: limited.headers,
+      });
+    }
+
     const client = getTwilioClient();
     const verification = await client.verify.v2
       .services(serviceSid)
@@ -44,19 +57,6 @@ export async function POST(request: Request) {
         { error: "Invalid verification code" },
         { status: 400 },
       );
-    }
-
-    const rate = checkRateLimit(
-      `login-verify-success:${phone}`,
-      RATE_LIMITS.loginVerifySuccess.limit,
-      RATE_LIMITS.loginVerifySuccess.windowMs,
-    );
-    if (!rate.allowed) {
-      const limited = rateLimitResponse(rate);
-      return NextResponse.json(limited.body, {
-        status: limited.status,
-        headers: limited.headers,
-      });
     }
 
     const response = NextResponse.json({ success: true }, { status: 200 });

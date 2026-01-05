@@ -20,6 +20,20 @@ export async function POST(request: Request) {
     }
 
     const phone = normalizeUSPhone(parsed.phone);
+
+    const rate = checkRateLimit(
+      `register-verify-success:${phone}`,
+      RATE_LIMITS.registerVerifySuccess.limit,
+      RATE_LIMITS.registerVerifySuccess.windowMs,
+    );
+    if (!rate.allowed) {
+      const limited = rateLimitResponse(rate);
+      return NextResponse.json(limited.body, {
+        status: limited.status,
+        headers: limited.headers,
+      });
+    }
+    
     const client = getTwilioClient();
     const verification = await client.verify.v2
       .services(serviceSid)
@@ -33,19 +47,6 @@ export async function POST(request: Request) {
         { error: "Invalid verification code" },
         { status: 400 },
       );
-    }
-
-    const rate = checkRateLimit(
-      `register-verify-success:${phone}`,
-      RATE_LIMITS.registerVerifySuccess.limit,
-      RATE_LIMITS.registerVerifySuccess.windowMs,
-    );
-    if (!rate.allowed) {
-      const limited = rateLimitResponse(rate);
-      return NextResponse.json(limited.body, {
-        status: limited.status,
-        headers: limited.headers,
-      });
     }
 
     // Random slug with collision retries for safety.
